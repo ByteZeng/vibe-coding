@@ -3,7 +3,8 @@ const cors = require('cors')
 require('dotenv').config()
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = Number(process.env.PORT) || 3001
+const HOST = process.env.HOST || '0.0.0.0'
 
 const DEFAULT_CORS_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
 function corsOrigins() {
@@ -219,6 +220,6 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`Backend server listening on http://localhost:${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`Backend server listening on http://${HOST}:${PORT}`)
 })
