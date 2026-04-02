@@ -2,6 +2,14 @@ import type { TurtleSoupStory } from '../data/stories'
 
 export type Story = TurtleSoupStory
 
+/** 本地开发留空（走 Vite 代理）；生产环境设为 Railway 等后端根地址，无尾斜杠 */
+function chatEndpoint(): string {
+  const raw = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
+  const base = raw.replace(/\/$/, '')
+  const path = '/api/chat'
+  return base ? `${base}${path}` : path
+}
+
 type JudgeResponse = {
   label: '是' | '否' | '无关' | '有一定关系'
   answer: string
@@ -57,8 +65,8 @@ export async function askAI(question: string, story: Story): Promise<string> {
 
   let response: Response
   try {
-    // 走同源 /api，由 Vite 代理到后端，避免开发环境跨域
-    response = await fetch('/api/chat', {
+    // 开发：同源 /api/chat + Vite 代理；生产：VITE_API_BASE_URL + /api/chat
+    response = await fetch(chatEndpoint(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -73,12 +81,19 @@ export async function askAI(question: string, story: Story): Promise<string> {
   }
 
   if (!response.ok) {
-    let message = `AI 接口请求失败(${response.status})`
+    const fallback = `AI 接口请求失败(${response.status})`
+    let message = fallback
     try {
       const data = (await response.json()) as { error?: { message?: string } }
       if (data?.error?.message) message = data.error.message
     } catch {
       // ignore
+    }
+    if (response.status === 404 && message === fallback) {
+      const hasBase = Boolean(import.meta.env.VITE_API_BASE_URL?.trim())
+      message = hasBase
+        ? 'AI 接口返回 404：请确认后端已部署且地址正确（可先访问 后端域名/api/test）'
+        : 'AI 接口返回 404：静态站点需设置 VITE_API_BASE_URL 为后端根地址并重新构建部署'
     }
     throw new Error(message)
   }
