@@ -7,6 +7,7 @@ const PORT = Number(process.env.PORT) || 3001
 const HOST = process.env.HOST || '0.0.0.0'
 
 const DEFAULT_CORS_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
+
 function corsOrigins() {
   const raw = process.env.CORS_ORIGINS
   if (!raw || !String(raw).trim()) return DEFAULT_CORS_ORIGINS
@@ -14,6 +15,25 @@ function corsOrigins() {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+/** 浏览器从 Vercel 访问 Railway 时必须在允许列表中；可选放行所有 *.vercel.app 预览/生产子域 */
+function isVercelOrigin(origin) {
+  if (process.env.CORS_ALLOW_VERCEL !== 'true') return false
+  try {
+    const u = new URL(origin)
+    return u.protocol === 'https:' && u.hostname.endsWith('.vercel.app')
+  } catch {
+    return false
+  }
+}
+
+function isOriginAllowed(origin) {
+  if (!origin) return true
+  const list = corsOrigins()
+  if (list.includes(origin)) return true
+  if (isVercelOrigin(origin)) return true
+  return false
 }
 
 // 记录“当前运行的故事”（以最近一次 /api/chat 请求为准）
@@ -58,11 +78,17 @@ function normalizeAiResponse(raw) {
   }
 }
 
-// 允许前端地址访问；局域网调试时在 .env 中设置 CORS_ORIGINS（逗号分隔）。
+// 跨域：Vercel 等线上前端需在 Railway 配置 CORS_ORIGINS，或设 CORS_ALLOW_VERCEL=true
 app.use(
   cors({
-    origin: corsOrigins(),
-    credentials: true,
+    origin(origin, callback) {
+      if (isOriginAllowed(origin)) {
+        callback(null, origin || true)
+      } else {
+        callback(null, false)
+      }
+    },
+    credentials: false,
   }),
 )
 app.use(express.json())
