@@ -1,0 +1,8 @@
+# Workers 静态资源 SPA：用 not_found_handling，勿用 public/_redirects 里 /* → index.html（会报 Infinite loop / 10021）
+# 构建由 Git 执行 npm run build，产物为 dist/
+name = "vibe-coding"
+compatibility_date = "2026-04-03"
+
+[assets]
+directory = "./dist/"
+not_found_handling = "single-page-application"
