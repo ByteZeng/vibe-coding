@@ -1,0 +1,19 @@
+/**
+ * 用法：复制为 ecosystem.config.cjs 放到 backend 目录，或调整 cwd 后：
+ *   pm2 start ecosystem.config.cjs
+ * 部署前先在服务器配置 backend/.env
+ */
+module.exports = {
+  apps: [
+    {
+      name: 'haigui-api',
+      cwd: '/opt/haigui/backend',
+      script: 'server.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+  ],
+}
