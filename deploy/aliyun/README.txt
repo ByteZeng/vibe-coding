@@ -55,13 +55,56 @@
   /opt/haigui/vibe-coding/backend
   然后：pm2 start ecosystem.config.cjs
 
-三、Nginx 反代 + HTTPS（对外域名）
+三、Nginx 反代（443 → 127.0.0.1:3001）
 ------------------------------------
+思路：在服务器上新建一个 Nginx 站点配置文件，内容来自本目录 nginx-api.conf.example，
+改好域名与证书路径后，让 Nginx 校验并重载。
+
 1）阿里云控制台「防火墙 / 安全组」放行 80、443（及 22 SSH）。
-2）域名解析到服务器公网 IP；大陆域名对公网建站通常需备案（以控制台提示为准）。
-3）参考本目录 nginx-api.conf.example，把 proxy_pass 指向 http://127.0.0.1:3001，
-   server_name 改为你的 API 域名，证书路径改为实际上传路径。
-4）测试：curl -s https://你的API域名/api/test
+
+2）域名解析：在域名 DNS 里把「API 子域」（如 api.你的域名.com）A 记录指到服务器公网 IP。
+   大陆域名对公网建站通常需备案（以控制台提示为准）。
+
+3）在服务器上新建配置文件（二选一，按系统习惯）：
+   - CentOS / Alibaba Cloud Linux 常见路径：
+     sudo vi /etc/nginx/conf.d/haigui-api.conf
+   - Ubuntu / Debian 常见路径：
+     sudo vi /etc/nginx/sites-available/haigui-api.conf
+     sudo ln -sf /etc/nginx/sites-available/haigui-api.conf /etc/nginx/sites-enabled/
+
+4）把仓库里 deploy/aliyun/nginx-api.conf.example 的全文复制进该文件，然后修改：
+   - 把所有 api.example.com 改成你的真实 API 域名（与 DNS 一致）。
+   - ssl_certificate / ssl_certificate_key 改成你证书在服务器上的真实路径。
+     若使用阿里云 SSL 下载的 Nginx 证书，可先：
+     sudo mkdir -p /etc/nginx/ssl
+     再把 .pem / .key 上传到该目录并改配置里的文件名。
+
+5）若暂时没有 HTTPS 证书，可先只做 HTTP 反代测试（仅内网或短期调试用，正式环境请上 HTTPS）：
+   新建例如 /etc/nginx/conf.d/haigui-api-http.conf，内容示例：
+
+   server {
+       listen 80;
+       server_name 你的API域名;
+       location / {
+           proxy_pass http://127.0.0.1:3001;
+           proxy_http_version 1.1;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+
+6）校验并重载 Nginx：
+
+   sudo nginx -t
+   sudo systemctl reload nginx
+
+7）测试：
+
+   curl -s http://127.0.0.1:3001/api/test
+   curl -s https://你的API域名/api/test
+   （未配证书时先只用 HTTP：curl -s http://你的API域名/api/test）
 
 四、前端（静态资源）
 ------------------------------------

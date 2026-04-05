@@ -1,6 +1,16 @@
-# 复制到服务器 /etc/nginx/sites-available/ 后按需改名，并建立软链到 sites-enabled
-# 将 api.example.com、证书路径改为你的域名与证书实际路径
-# sudo nginx -t && sudo systemctl reload nginx
+# 在服务器上「新建一个配置文件」，把下面内容复制进去，再改域名与证书路径。
+#
+# Alibaba Cloud Linux / CentOS 系（常见）：新建
+#   /etc/nginx/conf.d/haigui-api.conf
+# Ubuntu / Debian：常用
+#   /etc/nginx/sites-available/haigui-api.conf
+#   并执行：sudo ln -sf /etc/nginx/sites-available/haigui-api.conf /etc/nginx/sites-enabled/
+#
+# 证书：可放在 /etc/nginx/ssl/（需 sudo mkdir），或用阿里云免费证书下载后上传。
+# 测试配置并重载：
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# 尚无 HTTPS 证书时，可先用「仅 80 反代」测试（见 README.txt 第三节说明）。
 
 server {
     listen 443 ssl http2;
